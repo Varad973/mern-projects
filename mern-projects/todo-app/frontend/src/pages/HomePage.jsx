@@ -17,7 +17,7 @@ function HomePage() {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/tasks`);
-      setTasks(res.data.data);
+      setTasks(res.data.data || []);
       setError(null);
     } catch (err) {
       setError("Failed to fetch To Do's. Ensure the server is running.");

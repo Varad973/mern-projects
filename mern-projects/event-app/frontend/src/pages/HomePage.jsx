@@ -17,7 +17,7 @@ function HomePage() {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/events`);
-      setEvents(res.data.data);
+      setEvents(res.data.data || []);
       setError(null);
     } catch (err) {
       setError("Failed to fetch events. Ensure the server is running.");

@@ -17,7 +17,7 @@ function HomePage() {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/blogs`);
-      setBlogs(res.data.data);
+      setBlogs(res.data.data || []);
       setError(null);
     } catch (err) {
       setError("Failed to fetch blogs. Make sure the server is running.");

@@ -18,7 +18,7 @@ function HomePage() {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/students`);
-      setStudents(res.data.data);
+      setStudents(res.data.data || []);
       setError(null);
     } catch (err) {
       setError("Failed to fetch students. Make sure the server is running.");

@@ -17,7 +17,7 @@ function HomePage() {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/products`);
-      setProducts(res.data.data);
+      setProducts(res.data.data || []);
       setError(null);
     } catch (err) {
       setError("Failed to fetch products. Make sure the server is running.");
