@@ -1,309 +1,76 @@
-# Static Website Deployment on Cloud VM
+#!/bin/bash
+# 1. Update and install Nginx
+dnf update -y
+dnf install nginx -y
 
-## Overview
-This project demonstrates how to design and deploy a static website on a cloud virtual machine (VM)/instance. The server and networking settings are configured so that the website is publicly accessible and can be updated remotely.
+# 2. Clear default files
+rm -rf /usr/share/nginx/html/*
 
-The deployment uses:
-- Ubuntu Cloud VM
-- Apache Web Server
-- HTML/CSS Static Website
-- SSH/SCP for Remote Management
-
----
-
-# Objective
-
-- Launch a cloud virtual machine
-- Configure firewall and networking settings
-- Install and configure Apache Web Server
-- Deploy a static website
-- Make the website publicly accessible
-- Update the website remotely using SSH/SCP
-
----
-
-# Technologies Used
-
-- HTML5
-- CSS3
-- Ubuntu Server
-- Apache HTTP Server
-- SSH
-- SCP
-- Cloud Computing Services
-
----
-
-# Cloud Architecture
-
-```text
-User Browser
-      |
-      | HTTP Request
-      v
-Public IP Address
-      |
-      v
-Cloud VM Instance
-      |
-      v
-Apache Web Server
-      |
-      v
-Static Website Files
-```
-
----
-
-# Prerequisites
-
-Before starting, ensure you have:
-
-- Cloud Platform Account (AWS/GCP/Azure)
-- SSH Key Pair
-- Internet Connection
-- Terminal or PuTTY
-- Basic HTML Website Files
-
----
-
-# Step 1: Launch Cloud VM Instance
-
-## Example AWS EC2 Configuration
-
-| Setting | Value |
-|---|---|
-| Instance Name | StaticWebsiteServer |
-| Operating System | Ubuntu 22.04 |
-| Instance Type | t2.micro |
-| Storage | 8 GB |
-
-## Required Open Ports
-
-| Port | Protocol | Purpose |
-|---|---|---|
-| 22 | TCP | SSH Access |
-| 80 | TCP | HTTP Access |
-
----
-
-# Step 2: Connect to the Instance
-
-```bash
-ssh -i mykey.pem ubuntu@<PUBLIC_IP>
-```
-
-Example:
-
-```bash
-ssh -i awskey.pem ubuntu@13.233.xxx.xxx
-```
-
----
-
-# Step 3: Update System Packages
-
-```bash
-sudo apt update
-sudo apt upgrade -y
-```
-
----
-
-# Step 4: Install Apache Web Server
-
-Install Apache:
-
-```bash
-sudo apt install apache2 -y
-```
-
-Start Apache:
-
-```bash
-sudo systemctl start apache2
-```
-
-Enable Apache on Boot:
-
-```bash
-sudo systemctl enable apache2
-```
-
-Check Apache Status:
-
-```bash
-sudo systemctl status apache2
-```
-
----
-
-# Step 5: Deploy Static Website
-
-Move to the web root directory:
-
-```bash
-cd /var/www/html
-```
-
-Remove the default Apache page:
-
-```bash
-sudo rm index.html
-```
-
-Create a new HTML file:
-
-```bash
-sudo nano index.html
-```
-
-Paste the following code:
-
-```html
+# 3. Create the functional Unit Converter site
+cat <<'EOF' > /usr/share/nginx/html/index.html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Cloud Website</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Converter Tool</title>
     <style>
-        body{
-            font-family: Arial;
-            text-align:center;
-            margin-top:100px;
-            background:#f2f2f2;
-        }
-
-        h1{
-            color:#0077cc;
-        }
+        :root { --primary: #3b82f6; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 2rem; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 400px; width: 100%; }
+        h1 { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--primary); text-align: center; }
+        .group { margin-bottom: 1.5rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; }
+        input { width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        .result { margin-top: 0.5rem; font-size: 0.9rem; color: #64748b; font-style: italic; }
+        hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2rem 0; }
     </style>
 </head>
 <body>
+    <div class="card">
+        <h1>Quick Converter</h1>
+        
+        <div class="group">
+            <label>Celsius to Fahrenheit</label>
+            <input type="number" id="celsius" placeholder="Enter Celsius" oninput="convertTemp()">
+            <div id="tempResult" class="result">Result: -- °F</div>
+        </div>
 
-    <h1>Static Website Hosted on Cloud VM</h1>
-    <p>Website deployed successfully using Apache Server.</p>
+        <hr>
 
+        <div class="group">
+            <label>Miles to Kilometers</label>
+            <input type="number" id="miles" placeholder="Enter Miles" oninput="convertDist()">
+            <div id="distResult" class="result">Result: -- km</div>
+        </div>
+
+        <p style="font-size: 0.7rem; text-align: center; margin-top: 2rem; color: #94a3b8;">
+            Hosted on AWS EC2 • Running Nginx
+        </p>
+    </div>
+
+    <script>
+        function convertTemp() {
+            const c = document.getElementById('celsius').value;
+            const res = document.getElementById('tempResult');
+            if (c === "") { res.innerHTML = "Result: -- °F"; return; }
+            const f = (c * 9/5) + 32;
+            res.innerHTML = `Result: ${f.toFixed(1)} °F`;
+        }
+
+        function convertDist() {
+            const m = document.getElementById('miles').value;
+            const res = document.getElementById('distResult');
+            if (m === "") { res.innerHTML = "Result: -- km"; return; }
+            const k = m * 1.60934;
+            res.innerHTML = `Result: ${k.toFixed(2)} km`;
+        }
+    </script>
 </body>
 </html>
-```
+EOF
 
-Save and exit.
-
----
-
-# Step 6: Configure Networking
-
-Ensure the instance security group/firewall allows:
-
-- SSH Traffic (Port 22)
-- HTTP Traffic (Port 80)
-
-## AWS Security Group Example
-
-| Type | Protocol | Port Range | Source |
-|---|---|---|---|
-| SSH | TCP | 22 | 0.0.0.0/0 |
-| HTTP | TCP | 80 | 0.0.0.0/0 |
-
----
-
-# Step 7: Access Website
-
-Open the browser and enter:
-
-```text
-http://<PUBLIC_IP>
-```
-
-Example:
-
-```text
-http://13.233.xxx.xxx
-```
-
-The deployed website will appear.
-
----
-
-# Remote Website Update
-
-Upload updated files remotely using SCP:
-
-```bash
-scp -i awskey.pem index.html ubuntu@<PUBLIC_IP>:/tmp/
-```
-
-Move uploaded file:
-
-```bash
-sudo mv /tmp/index.html /var/www/html/
-```
-
-Restart Apache:
-
-```bash
-sudo systemctl restart apache2
-```
-
----
-
-# Useful Commands
-
-| Operation | Command |
-|---|---|
-| Update Packages | `sudo apt update` |
-| Install Apache | `sudo apt install apache2 -y` |
-| Start Apache | `sudo systemctl start apache2` |
-| Restart Apache | `sudo systemctl restart apache2` |
-| Enable Apache | `sudo systemctl enable apache2` |
-| Check Apache Status | `sudo systemctl status apache2` |
-
----
-
-# Output
-
-- Cloud VM launched successfully
-- Apache Web Server configured
-- Static website deployed
-- Website publicly accessible
-- Remote updates performed successfully
-
----
-
-# Applications
-
-- Portfolio Websites
-- Landing Pages
-- Documentation Hosting
-- College Mini Projects
-- Business Information Websites
-
----
-
-# Advantages
-
-- Low Cost Hosting
-- Easy Deployment
-- Fast Loading Speed
-- Simple Maintenance
-- High Availability
-
----
-
-# Result
-
-Successfully designed and deployed a static website on a cloud virtual machine with proper server and networking configuration. The website is publicly accessible and can be updated remotely.
-
----
-
-# Conclusion
-
-Deploying a static website on a cloud VM provides a scalable and efficient hosting solution. By properly configuring the web server and security settings, the website becomes accessible globally while still allowing secure remote management.
-
----
-
-# Author
-
-**Name:** Krish Bansal  
-**Department:** Computer Engineering  
-**Institute:** Pune Institute of Computer Technology
+# 4. Set permissions and restart
+chmod 644 /usr/share/nginx/html/index.html
+systemctl enable nginx
+systemctl start nginx
