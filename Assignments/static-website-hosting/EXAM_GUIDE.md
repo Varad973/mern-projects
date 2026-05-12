@@ -4,7 +4,7 @@
 
 ## What This Practical Is About
 
-You are deploying a **static HTML website** (a Unit Converter tool) on an **AWS EC2 instance** running Amazon Linux, using **Nginx** as the web server. The site is accessible from a browser via the instance's public IP.
+You are deploying a **static HTML website** (a Unit Converter tool) on an **AWS EC2 instance** running Amazon Linux, using **Nginx** as the web server. The script runs automatically on boot via **EC2 User Data** — no SSH or terminal required.
 
 ---
 
@@ -16,6 +16,7 @@ You are deploying a **static HTML website** (a Unit Converter tool) on an **AWS 
 | **Nginx** | A lightweight, high-performance web server used to serve static files over HTTP |
 | **Static Website** | A website with fixed HTML/CSS/JS content — no backend/database needed |
 | **Security Group** | AWS firewall rules that control which ports are open to the internet |
+| **User Data** | A script you give to EC2 at launch time — AWS runs it automatically as root on the first boot |
 | **Public IP** | The IP address assigned to your EC2 instance, accessible from the internet |
 | **`dnf`** | Package manager for Amazon Linux 2023 (like `apt` for Ubuntu) |
 | **`/usr/share/nginx/html/`** | Default directory where Nginx looks for files to serve |
@@ -23,63 +24,35 @@ You are deploying a **static HTML website** (a Unit Converter tool) on an **AWS 
 
 ---
 
-## Step 1 — Launch an EC2 Instance on AWS
+## Step 1 — Launch EC2 Instance
 
-1. Go to [AWS Console](https://console.aws.amazon.com) → **EC2** → **Launch Instance**
-2. Fill in the details:
-   - **Name:** `static-website-server` (or any name)
-   - **AMI (OS):** `Amazon Linux 2023` (uses `dnf` — matches the script)
-   - **Instance Type:** `t2.micro` (free tier eligible)
-   - **Key Pair:** Create a new key pair → download the `.pem` file (save it safely!)
-3. **Security Group** — this is critical:
-   - Click **Edit** under Network Settings
-   - Add these **Inbound Rules**:
-
-     | Type | Protocol | Port | Source |
-     |------|----------|------|--------|
-     | SSH  | TCP | 22 | My IP (or Anywhere) |
-     | HTTP | TCP | **80** | Anywhere (0.0.0.0/0) |
-
-   > Port 80 MUST be open or the website won't load in the browser.
-
-4. Click **Launch Instance** → wait ~1 minute for it to start.
-5. Note the **Public IPv4 address** from the instance details page.
+1. Go to AWS Console → **EC2** → **Launch Instance**
+2. Fill in:
+   - **Name:** `static-website-server`
+   - **AMI:** `Amazon Linux 2023` (must be this — script uses `dnf`)
+   - **Instance Type:** `t2.micro` (free tier)
+   - **Key Pair:** `Proceed without key pair` (no SSH needed) — or create one if examiner may ask you to SSH
 
 ---
 
-## Step 2 — Connect to the EC2 Instance via SSH
+## Step 2 — Open Port 80 in Security Group
 
-### On Windows (using Command Prompt / PowerShell):
+Under **Network Settings** → click **Edit**:
 
-```bash
-# Navigate to where your .pem file is (e.g., Downloads)
-cd Downloads
+| Type | Protocol | Port | Source |
+|------|----------|------|--------|
+| HTTP | TCP | **80** | Anywhere `0.0.0.0/0` |
 
-# Set correct permissions (Windows — skip if using PuTTY)
-icacls "your-key.pem" /inheritance:r /grant:r "%USERNAME%:R"
-
-# SSH into the instance
-ssh -i "your-key.pem" ec2-user@<YOUR_PUBLIC_IP>
-```
-
-### On Linux/Mac:
-```bash
-chmod 400 your-key.pem
-ssh -i "your-key.pem" ec2-user@<YOUR_PUBLIC_IP>
-```
-
-> Replace `<YOUR_PUBLIC_IP>` with the actual public IP of your EC2 instance.
-> The default username for Amazon Linux is **`ec2-user`**.
+> Port 80 is mandatory — this is what lets the browser reach your website.
+> No need to add SSH (port 22) unless you plan to connect to the terminal.
 
 ---
 
-## Step 3 — Run the Setup Script
+## Step 3 — Paste Script in User Data
 
-Once connected via SSH, you have two options:
-
-### Option A — Copy-Paste the Script (Recommended in Exam)
-
-Run this **entire block** in the terminal at once:
+1. Scroll down to **Advanced Details**
+2. Find the **User Data** text box at the bottom
+3. Paste the **entire script** below:
 
 ```bash
 #!/bin/bash
@@ -160,63 +133,35 @@ systemctl enable nginx
 systemctl start nginx
 ```
 
-### Option B — Create a Script File and Run It
-
-```bash
-# Create the script file
-nano setup.sh
-
-# Paste the script content, then press Ctrl+O → Enter → Ctrl+X to save
-
-# Make it executable and run
-chmod +x setup.sh
-sudo ./setup.sh
-```
-
-> If you get "Permission denied" errors, prefix commands with `sudo`.
+4. Click **Launch Instance**
 
 ---
 
-## Step 4 — Verify Everything is Working
+## Step 4 — Wait for It to Boot
 
-### Check Nginx is Running:
-```bash
-systemctl status nginx
-```
-Expected output contains: `Active: active (running)`
+- Wait **2–3 minutes** for the instance to reach `Running` state
+- The User Data script runs automatically during this boot time
+- Copy the **Public IPv4 address** from the instance details page
 
-### Check the HTML file exists:
-```bash
-ls -la /usr/share/nginx/html/
-cat /usr/share/nginx/html/index.html
-```
-
-### Test locally on the server:
-```bash
-curl http://localhost
-```
-This should print the HTML content of your page.
+> User Data runs as root automatically — no `sudo` needed, no SSH needed.
 
 ---
 
-## Step 5 — Access the Website in Browser
+## Step 5 — Open the Website
 
-Open your browser and go to:
+In your browser, go to:
+
 ```
 http://<YOUR_PUBLIC_IP>
 ```
 
-> Use **http://** (not https) — port 80, not 443.
+> Always use `http://` not `https://` — we opened port 80, not 443.
 
-You should see the **Quick Converter** page with:
-- Celsius to Fahrenheit converter
-- Miles to Kilometers converter
+You should see the **Quick Converter** page with working converters.
 
 ---
 
 ## What the Website Does (Explain to Examiner)
-
-The page is a **single-page static HTML application** with:
 
 | Feature | How it Works |
 |---------|-------------|
@@ -230,22 +175,59 @@ The page is a **single-page static HTML application** with:
 ## What Each Script Command Does (Explain to Examiner)
 
 ```bash
-dnf update -y              # Updates all installed packages (keeps system secure)
-dnf install nginx -y       # Installs the Nginx web server
+#!/bin/bash               # Tells the OS to run this as a bash shell script
 
-rm -rf /usr/share/nginx/html/*   # Removes default Nginx demo page
+dnf update -y             # Updates all installed packages
+dnf install nginx -y      # Installs the Nginx web server
+
+rm -rf /usr/share/nginx/html/*   # Removes the default Nginx welcome page
 
 cat <<'EOF' > /usr/share/nginx/html/index.html
 ...
 EOF
-# Creates our custom index.html using a heredoc (multi-line string redirect)
+# Heredoc — writes everything between <<'EOF' and EOF into the file directly
 
 chmod 644 /usr/share/nginx/html/index.html
-# Sets file permissions: owner can read/write, others can only read
-# (required so Nginx can read and serve the file)
+# 644 = owner: read+write, group: read, others: read
+# Nginx must be able to read the file to serve it
 
-systemctl enable nginx     # Makes Nginx start automatically on every reboot
-systemctl start nginx      # Starts Nginx right now
+systemctl enable nginx    # Auto-start Nginx on every reboot
+systemctl start nginx     # Start Nginx immediately right now
+```
+
+---
+
+## What is User Data? (Examiner May Ask)
+
+**User Data** is a feature of AWS EC2 that lets you pass a shell script to the instance at launch time. AWS automatically runs this script **once on the very first boot**, as the `root` user. This is used for:
+- Installing software (Nginx, Node.js, etc.)
+- Configuring the server
+- Deploying application files
+
+This means the entire setup is automated — the instance boots and the website is ready without any manual SSH or terminal work.
+
+---
+
+## Architecture Diagram (Draw This if Asked)
+
+```
+[Your Browser]
+      |
+      | HTTP Request → port 80
+      |
+[Internet]
+      |
+[AWS Security Group — Inbound port 80 open]
+      |
+[EC2 Instance — Amazon Linux 2023]
+      |
+      |-- User Data ran on boot → installed Nginx → created index.html
+      |
+[Nginx Web Server — listening on port 80]
+      |
+[/usr/share/nginx/html/index.html]
+      |
+[HTML + JS sent back → Browser renders the converter]
 ```
 
 ---
@@ -254,106 +236,54 @@ systemctl start nginx      # Starts Nginx right now
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| Website not loading in browser | Port 80 not open | Go to EC2 → Security Group → Add HTTP inbound rule (port 80) |
-| `ssh: connection refused` | Port 22 not open | Add SSH inbound rule in Security Group |
-| `dnf: command not found` | Wrong OS (not Amazon Linux 2023) | Use `yum` instead of `dnf`, or relaunch with Amazon Linux 2023 AMI |
-| `Permission denied` on commands | Not running as root | Prefix commands with `sudo` |
-| Nginx status shows `failed` | Config error or port in use | Run `sudo nginx -t` to check config errors |
-| `curl http://localhost` shows nothing | Nginx not started | Run `sudo systemctl start nginx` |
-| Browser shows old default Nginx page | Cache issue | Hard refresh: `Ctrl + Shift + R` |
-
----
-
-## Quick Reference Commands
-
-```bash
-# Check Nginx status
-sudo systemctl status nginx
-
-# Start Nginx
-sudo systemctl start nginx
-
-# Stop Nginx
-sudo systemctl stop nginx
-
-# Restart Nginx
-sudo systemctl restart nginx
-
-# Enable Nginx on boot
-sudo systemctl enable nginx
-
-# View Nginx error logs
-sudo tail -f /var/log/nginx/error.log
-
-# View Nginx access logs (shows who visited)
-sudo tail -f /var/log/nginx/access.log
-
-# Test Nginx config for syntax errors
-sudo nginx -t
-
-# Check what's running on port 80
-sudo ss -tlnp | grep :80
-```
-
----
-
-## Architecture Diagram (Draw This if Asked)
-
-```
-[Your Laptop / Browser]
-        |
-        | HTTP Request (port 80)
-        |
-[Internet]
-        |
-[AWS Security Group — allows port 80]
-        |
-[EC2 Instance — Amazon Linux 2023]
-        |
-[Nginx Web Server — listens on port 80]
-        |
-[/usr/share/nginx/html/index.html]
-        |
-[HTML Response sent back to browser]
-```
+| Website not loading | Port 80 not open | EC2 → Security Group → Add HTTP rule (port 80, `0.0.0.0/0`) |
+| Website shows default Nginx page | User Data didn't run or wrong script | Terminate and relaunch; make sure script starts with `#!/bin/bash` |
+| Browser shows "This site can't be reached" | Instance still booting | Wait 2–3 more minutes and refresh |
+| `https://` doesn't work | Port 443 not open (we only set up HTTP) | Use `http://` not `https://` |
+| Wrong page or old content | Browser cache | Hard refresh: `Ctrl + Shift + R` |
+| AMI mismatch | Used Ubuntu (uses `apt`, not `dnf`) | Relaunch with **Amazon Linux 2023** AMI |
 
 ---
 
 ## Examiner Questions & Answers
 
+**Q: What is User Data in EC2?**
+A: User Data is a script passed to EC2 at launch time. AWS runs it automatically on the first boot as root. It's used to automate server setup without needing to SSH.
+
 **Q: Why use Nginx instead of Apache?**
-A: Nginx is faster for serving static files, uses less memory, and handles many concurrent connections better than Apache.
+A: Nginx is faster for serving static files, uses less memory, and handles many concurrent connections efficiently.
 
 **Q: What is the difference between `systemctl enable` and `systemctl start`?**
-A: `start` runs the service immediately. `enable` makes it start automatically every time the server reboots. We need both.
+A: `start` runs Nginx immediately. `enable` makes it start automatically on every reboot. We need both.
 
 **Q: Why is `chmod 644` used?**
-A: 644 = owner has read+write (6), group has read-only (4), others have read-only (4). Nginx needs read access to serve the file.
+A: 644 means owner has read+write, group has read-only, others have read-only. Nginx needs read access to serve the file to users.
 
 **Q: What is a static website?**
-A: A website that serves fixed HTML/CSS/JS files. No database, no server-side processing. The browser runs all logic (JavaScript).
+A: A website with fixed HTML/CSS/JS files. No database or backend server processes requests — the browser runs all the logic.
 
-**Q: How is this different from a dynamic website?**
-A: Dynamic websites use backend servers (Node.js, PHP, Python) and databases to generate content on-the-fly. Static sites have pre-written files.
+**Q: What port does HTTP use? What about HTTPS?**
+A: HTTP uses port **80**. HTTPS uses port **443**.
 
-**Q: What port does HTTP use?**
-A: Port **80**. HTTPS uses port **443**.
+**Q: What is a Security Group?**
+A: A virtual firewall in AWS that controls inbound and outbound traffic to your EC2 instance. We opened port 80 so browsers can reach the website.
 
-**Q: What is a Security Group in AWS?**
-A: It's a virtual firewall that controls inbound and outbound traffic to your EC2 instance. Without opening port 80, the website is not accessible from the internet.
+**Q: Where does Nginx serve files from by default?**
+A: `/usr/share/nginx/html/` — the `index.html` in this folder is served when someone visits the server's IP on port 80.
 
-**Q: Where does Nginx store its default web files?**
-A: `/usr/share/nginx/html/` — the `index.html` file in this directory is served when someone visits the server's IP.
+**Q: Why `#!/bin/bash` at the top?**
+A: It's called a shebang line — it tells the OS which interpreter to use to run the script (bash in this case).
 
 ---
 
 ## Checklist Before Showing Examiner
 
-- [ ] EC2 instance is **Running** (green status in AWS console)
-- [ ] Security group has **port 80 (HTTP)** open
-- [ ] SSH is connected successfully
-- [ ] Script ran without errors
-- [ ] `systemctl status nginx` shows **active (running)**
-- [ ] `curl http://localhost` returns the HTML
-- [ ] Browser opens `http://<PUBLIC_IP>` and shows the converter page
-- [ ] Converter works — type a number and see the result update live
+- [ ] AMI selected is **Amazon Linux 2023**
+- [ ] Security group has **port 80 (HTTP)** open with source `0.0.0.0/0`
+- [ ] User Data script is pasted correctly (starts with `#!/bin/bash`)
+- [ ] Instance status is **Running** (green) in AWS console
+- [ ] Waited **2–3 minutes** after Running status for boot script to finish
+- [ ] Copied the **Public IPv4 address**
+- [ ] Browser opens `http://<PUBLIC_IP>` — shows **Quick Converter** page
+- [ ] Typed a number in Celsius field — result updates live
+- [ ] Typed a number in Miles field — result updates live
