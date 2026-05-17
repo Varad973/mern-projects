@@ -93,7 +93,8 @@ nano .env
 Add the following (replace with your actual values):
 
 ```env
-mongodb+srv://mernuser:mern1234@cluster0.e6i6uo0.mongodb.net/merndb?appName=Cluster0
+MONGODB_URI=mongodb+srv://mernuser:mern1234@cluster0.e6i6uo0.mongodb.net/merndb?appName=Cluster0
+PORT=5000
 ```
 
 Save: `Ctrl+O` → `Enter` → `Ctrl+X`
