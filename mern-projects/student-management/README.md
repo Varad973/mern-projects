@@ -55,7 +55,7 @@ Create a `.env` file in the `backend/` directory:
 
 ```
 PORT=5000
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/studentdb?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://mernuser:mern1234@cluster0.e6i6uo0.mongodb.net/ecommdb?retryWrites=true&w=majority
 ```
 
 Start the backend server:
