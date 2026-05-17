@@ -156,8 +156,8 @@ nano .env
 Paste this (replace with your actual Atlas URI):
 
 ```
-MONGODB_URI=mongodb+srv://admin:yourpassword@cluster0.xxxxx.mongodb.net/blogdb?retryWrites=true&w=majority
 PORT=5000
+MONGODB_URI=mongodb+srv://mernuser:mern1234@cluster0.e6i6uo0.mongodb.net/ecommdb?retryWrites=true&w=majority
 ```
 
 Save: `Ctrl+O` → Enter → `Ctrl+X`
