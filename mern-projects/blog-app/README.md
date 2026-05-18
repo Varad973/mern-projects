@@ -169,7 +169,7 @@ nano .env
 Add (replace with your **backend** instance's public IP):
 
 ```env
-VITE_API_URL=http://<backend-public-ip>:5000
+VITE_API_URL=http://localhost:5000/api
 ```
 
 Save: `Ctrl+O` → `Enter` → `Ctrl+X`
