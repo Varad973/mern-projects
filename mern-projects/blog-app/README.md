@@ -166,7 +166,7 @@ cd Cloud-Computing/mern-projects/blog-app/frontend
 nano .env
 ```
 
-Add (replace with your **backend** instance's public IP):
+Add (replace with your **backend** instance's public IP): replace localhost with public IP of backend
 
 ```env
 VITE_API_URL=http://localhost:5000/api
